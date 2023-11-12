@@ -4,10 +4,29 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
+using JetBrains.Annotations;
+using static UnityEngine.UI.Image;
 
 // class that controls the forest fire cellular automaton
 public class ForestFire3D : MonoBehaviour
 {
+
+    //Modifiers used to set coin, health and speed values based on selected difficulty
+    public int coinModifier;
+    public int healthModifier;
+    public float speedModifier;
+
+    //Variables releted to difficulty
+    public bool difficultySelected;
+    public string difficulty;
+
+    //Reference to the scoreController
+    public ScoreController scoreController;
+
+    //Boolean for checking if player has teleported
+    public bool hasTeleported;
+
+
     public int gridSizeX; // x size of the grid
     public int gridSizeY; // y size of the grid
     public int nlight; // the number of trees to set alight at the start of the game
@@ -44,6 +63,7 @@ public class ForestFire3D : MonoBehaviour
         RandomiseGrid();
         PauseGame(true);
         UpdateGridVisuals();
+        coinModifier = 1;
     }
 
     // this function controls whether or not to pause the game
@@ -60,11 +80,128 @@ public class ForestFire3D : MonoBehaviour
         }
     }
 
+
+
+    //Variables needed for the random spawning of coins across the map
+    public GameObject coinPrefab;
+    public Transform[] coinSpawnPoints;
+
+
+    //Void which will instantiate coins across the map when called upon
+    //Number of coins spawned will be depend on difficulty
+    public void CoinInstantiate()
+    {
+       
+        for (var i = 0; i < coinModifier; i++)  //Loop 5 times for easy, 10 for normal, 15 for hard
+        {
+            //Spawn coin at point corresponding to '_randomNumber' array value
+            int _randomNumber = UnityEngine.Random.Range(0, coinSpawnPoints.Length);
+            Instantiate(coinPrefab, coinSpawnPoints[_randomNumber].transform.position, Quaternion.identity);
+        }
+
+    }
+
+
+    public Transform teleportSpot;       //Teleport spot variable
+    public GameObject xrRig;             //xrRig variable is the XR Rig camera - the player
+    public AudioSource victorySound;     //Victory audio sound
+
+
+    //Void which will teleport the player to location when called upon
+    private void Teleport()
+    {
+        Debug.Log("The player has collected all " + coinModifier + " coins and has won");
+        xrRig.transform.position = teleportSpot.position;
+        victorySound.Play();
+        hasTeleported = true;    //hasTeleported bool used to stop other functions running when player has won
+    }
+
+
+
+
+
+
     // Update is a built-in Unity function that is called once per frame 
     private void Update()
     {
+        
+        //Checks if '1' has been pressed - button for easy difficulty
+
+        if (Keyboard.current.digit1Key.wasPressedThisFrame)
+        {
+            // if the gameRunning is true, do nothing
+            if (gameRunning)
+            {
+               
+            }
+            else // if the gameRunning is false, selects EASY mode
+            {
+                //Debug message displayed and modifier values initialised. 
+                //Coins spawned
+                Debug.Log("Easy mode selected");     
+                coinModifier = 5;
+                healthModifier = 0;
+                speedModifier = 1f;
+                difficultySelected = true;
+                difficulty = ("Easy");
+                CoinInstantiate();
+            }
+        }
+
+        //Checks if '2' has been pressed - button for easy difficulty
+
+        if (Keyboard.current.digit2Key.wasPressedThisFrame)
+        {
+            // if the gameRunning is true, do nothing
+            if (gameRunning)
+            {
+
+            }
+            else // if the gameRunning is false, selects NORMAL mode
+            {
+                //Debug message displayed and modifier values initialised. 
+                //Coins spawned
+                Debug.Log("Normal mode selected");
+                coinModifier = 10;
+                healthModifier = 25;
+                speedModifier = 1.25f;
+                difficultySelected = true;
+                difficulty = ("Normal");
+                CoinInstantiate();
+               
+            }
+        }
+
+        //Checks if '3' has been pressed - button for easy difficulty
+
+        if (Keyboard.current.digit3Key.wasPressedThisFrame)
+        {
+            // if the gameRunning is true, do nothing
+            if (gameRunning)
+            {
+
+            }
+            else // if the gameRunning is false, selects HARD mode
+            {
+                //Debug message displayed and modifier values initialised. 
+                //Coins spawned
+                Debug.Log("Hard mode selected");
+                coinModifier = 15;
+                healthModifier = 50;
+                speedModifier = 1.5f;
+                difficultySelected = true;
+                difficulty = ("Hard");
+                CoinInstantiate();
+            }
+        }
+
+
+
         // check if the spacebar key has been pressed. this key will toggle between whether the game is currently running or paused
-        if (Keyboard.current.spaceKey.wasPressedThisFrame)
+        //so long as a difficulty has been selected first.
+
+
+        if (Keyboard.current.spaceKey.wasPressedThisFrame && difficultySelected == true)
         {
             // if the gameRunning is true, pause the game
             if (gameRunning)
@@ -81,6 +218,9 @@ public class ForestFire3D : MonoBehaviour
         if (Keyboard.current.rKey.wasPressedThisFrame)
         {
             RandomiseGrid();
+            //Reseting difficulty variables
+            difficultySelected = false;
+            difficulty = ("None");
         }
 
         // update the visual state of each cell
@@ -99,10 +239,24 @@ public class ForestFire3D : MonoBehaviour
             UpdateCells();
             _gameTimer = 0f;
         }
+
+        //If the current score is equal to the coin modifier the player teleports
+        //This must mean all coins have been collected and the player has therefore won
+
+        if (scoreController.currentScore >= coinModifier)
+        {
+            Teleport();
+        }
+
+
     }
 
     private void RandomiseGrid()
     {
+
+
+
+
         nlight = 2; // how many trees to set on fire
                       // iterate through every cell in the cell in the grid and set its state to dead, decide what type of object is present and if flammable assign an amount of fuel
 
